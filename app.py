@@ -517,4 +517,42 @@ elif menu == "📉 מעקב תקציב":
                 st.download_button("Excel", data=excel_data, file_name=f"{safe_name}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
 
     else:
+
         st.info("אין פרויקטים במערכת")
+
+# רועי
+
+
+/* אפקט צל וריחוף למדדים */
+    div[data-testid="stMetric"] {
+        transition: transform 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+    }
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0,0,0,0.1) !important;
+        border-right: 5px solid #1B4F72 !important;
+    }
+
+    /* עיצוב כפתורי הורדה (PDF/Excel) */
+    .stDownloadButton > button {
+        background-color: #ffffff !important;
+        color: #2E86C1 !important;
+        border: 1px solid #2E86C1 !important;
+        border-radius: 5px !important;
+        height: 40px;
+        transition: all 0.3s ease;
+    }
+    .stDownloadButton > button:hover {
+        background-color: #EBF5FB !important;
+        color: #1B4F72 !important;
+        border-color: #1B4F72 !important;
+    }
+    
+    /* עיצוב כותרות של Expander */
+    .streamlit-expanderHeader {
+        background-color: #F8F9F9;
+        font-weight: bold;
+        color: #154360;
+        border-radius: 8px;
+    }
