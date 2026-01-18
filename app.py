@@ -522,8 +522,10 @@ elif menu == "📉 מעקב תקציב":
 
 # רועי
 
-
-/* אפקט צל וריחוף למדדים */
+# הוספה בסוף הקובץ app.py
+st.markdown("""
+<style>
+    /* אפקט צל וריחוף למדדים */
     div[data-testid="stMetric"] {
         transition: transform 0.2s, box-shadow 0.2s;
         cursor: pointer;
@@ -548,11 +550,5 @@ elif menu == "📉 מעקב תקציב":
         color: #1B4F72 !important;
         border-color: #1B4F72 !important;
     }
-    
-    /* עיצוב כותרות של Expander */
-    .streamlit-expanderHeader {
-        background-color: #F8F9F9;
-        font-weight: bold;
-        color: #154360;
-        border-radius: 8px;
-    }
+</style>
+""", unsafe_allow_html=True)
