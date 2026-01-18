@@ -183,34 +183,42 @@ def update_stage_costs(project_id, stages_df):
         st.error(f"Update Error: {e}")
         return False
 
-# --- 4. פונקציות ייצוא ---
+# --- 4. פונקציות ייצוא (מתוקן) ---
 def create_pdf(project_name, df):
     pdf = FPDF()
     pdf.add_page()
-    font_path = "Arial.ttf" 
+    
+    # בדיקת קיום פונט עברית
+    font_path = "Arial.ttf"  
     has_font = os.path.exists(font_path)
     
     if has_font:
         try:
-            pdf.add_font("Arial", "", font_path)
-            pdf.set_font("Arial", size=12)
-        except:
+            # uni=True חשוב לתמיכה בתווים
+            pdf.add_font("CustomArial", "", font_path, uni=True)
+            pdf.set_font("CustomArial", size=12)
+        except Exception as e:
             has_font = False
             pdf.set_font("helvetica", size=12)
     else:
         pdf.set_font("helvetica", size=12)
 
+    # כותרות
     pdf.set_fill_color(46, 134, 193)
     pdf.set_text_color(255, 255, 255)
     pdf.cell(0, 15, txt="SBB Engineering Report", ln=True, align='C', fill=True)
     pdf.ln(10)
     
     pdf.set_text_color(0, 0, 0)
-    display_name = project_name[::-1] if has_font else project_name
-    pdf.cell(0, 10, txt=f"Project: {display_name}", ln=True, align='R' if has_font else 'L')
+    
+    # היפוך טקסט שם הפרויקט אם יש פונט עברי
+    display_name = project_name[::-1] if has_font else "Project Name"
+    pdf.cell(0, 10, txt=f"Project: {display_name}", ln=True, align='R')
     pdf.ln(5)
 
+    # כותרות טבלה
     pdf.set_fill_color(235, 245, 251)
+    
     h_actual = "בפועל"[::-1] if has_font else "Actual"
     h_planned = "מתוכנן"[::-1] if has_font else "Planned"
     h_stage = "שלב"[::-1] if has_font else "Stage"
@@ -222,12 +230,22 @@ def create_pdf(project_name, df):
     for _, row in df.iterrows():
             pdf.cell(60, 10, f"{row['actual_cost']:,.0f}", 1, 0, 'C')
             pdf.cell(60, 10, f"{row['planned_cost']:,.0f}", 1, 0, 'C')
+            
             s_name = str(row['stage_name'])
-            # היפוך טקסט רק אם הוא בעברית ויש פונט תומך
+            # בדיקה האם הטקסט מכיל עברית לפני היפוך
             is_hebrew = any("\u0590" <= c <= "\u05EA" for c in s_name)
-            display_stage = s_name[::-1] if has_font and is_hebrew else s_name
-            pdf.cell(70, 10, display_stage, 1, 1, 'C', align='R' if is_hebrew else 'C')
-    return pdf.output()
+            
+            if has_font and is_hebrew:
+                display_stage = s_name[::-1]
+                align_set = 'R'
+            else:
+                display_stage = s_name
+                align_set = 'C'
+            
+            pdf.cell(70, 10, display_stage, 1, 1, 'C', align=align_set)
+            
+    # החזרה כ-Bytes עבור Streamlit
+    return pdf.output(dest='S').encode('latin-1')
 
 def create_excel(df):
     output = io.BytesIO()
@@ -318,7 +336,7 @@ elif menu == "➕ פרויקט חדש":
             with col_p3:
                 st.number_input("🔑 מסירה וגמר (יתרה)", value=p3, disabled=True)
                 if p3 < 0:
-                     st.error("חריגה מ-100%!")
+                      st.error("חריגה מ-100%!")
 
             df_pie = pd.DataFrame({
                 'Stage': ['תכנון', 'ביצוע', 'מסירה'],
@@ -508,20 +526,20 @@ elif menu == "📉 מעקב תקציב":
             safe_name = re.sub(r'[\\/*?:"<>|]', "", sel)
             
             with c_pdf:
+                # הוספת תפיסת שגיאות מורחבת לPDF
                 try:
                     pdf_data = create_pdf(sel, edited)
                     st.download_button("PDF", data=pdf_data, file_name=f"{safe_name}.pdf", mime="application/pdf", use_container_width=True)
-                except: 
-                    st.error("שגיאה ביצירת PDF")
+                except Exception as e: 
+                    st.error(f"שגיאה ביצירת PDF: {e}")
             
             with c_xlsx:
-                excel_data = create_excel(edited)
-                st.download_button("Excel", data=excel_data, file_name=f"{safe_name}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                try:
+                    excel_data = create_excel(edited)
+                    st.download_button("Excel", data=excel_data, file_name=f"{safe_name}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                except Exception as e:
+                    st.error(f"שגיאה ביצירת Excel: {e}")
 
     else:
 
         st.info("אין פרויקטים במערכת")
-
-
-
-
