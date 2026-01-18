@@ -8,7 +8,7 @@ import io
 import os
 import re
 
-# --- 1. הגדרות עמוד ועיצוב (CSS) ---
+# --- 1. הגדרות עמוד ועיצוב מתקדם (CSS Injection) ---
 st.set_page_config(
     page_title="SBB Pro System",
     layout="wide",
@@ -16,66 +16,89 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# הזרקת CSS לעיצוב "כמו אתר אמיתי"
 st.markdown("""
 <style>
-    /* כיוון RTL ופונטים */
-    .stApp { direction: rtl; text-align: right; font-family: 'Segoe UI', sans-serif; }
-    .stMarkdown, .stSelectbox, .stInput, .stNumberInput, .stSlider { 
-        direction: rtl; text-align: right; 
+    /* ייבוא פונט Heebo מגוגל */
+    @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;700&display=swap');
+
+    /* הגדרות גלובליות */
+    * {
+        font-family: 'Heebo', sans-serif !important;
     }
     
-    /* כפתורים בגווני כחול */
-    .stButton > button {
-        background-color: #2E86C1;
-        color: white;
-        border-radius: 8px;
-        border: none;
-        padding: 10px 24px;
-        font-weight: bold;
-        transition: all 0.3s;
-        width: 100%;
-    }
-    .stButton > button:hover {
-        background-color: #1B4F72;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    .stApp {
+        background-color: #F7F9FC; /* רקע אפור-תכלת בהיר מאוד */
     }
 
-    /* כרטיסים ואקספנדרים */
-    div[data-testid="stExpander"] {
-        background-color: #ffffff;
-        border-radius: 10px;
-        border: 1px solid #E5E8E8;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    /* הסתרת התפריט של סטרימליט והפוטר */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+
+    /* עיצוב כותרות */
+    h1, h2, h3 {
+        color: #1A3C5B; /* כחול עמוק */
+        font-weight: 700;
     }
     
-    /* עיצוב מדדים (Metrics) */
+    /* עיצוב כרטיסים (Containers) */
+    div[data-testid="stExpander"], div[data-testid="stForm"] {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        border: none;
+        padding: 10px;
+    }
+
+    /* עיצוב מטריקות (קוביות המידע) */
     div[data-testid="stMetric"] {
-        background-color: #F8F9F9;
-        padding: 15px;
-        border-radius: 10px;
-        border-right: 5px solid #2E86C1;
+        background-color: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.04);
+        border-right: 4px solid #3B82F6; /* פס כחול בצד */
         text-align: center;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        transition: transform 0.2s;
+    }
+    div[data-testid="stMetric"]:hover {
+        transform: translateY(-5px); /* אפקט ריחוף */
     }
     div[data-testid="stMetricLabel"] {
-        text-align: center; 
-        font-weight: bold;
-        color: #566573;
+        color: #64748B;
         font-size: 0.9rem;
     }
     div[data-testid="stMetricValue"] {
-        text-align: center;
-        color: #154360;
-        font-weight: bold;
+        color: #1A3C5B;
+        font-size: 1.8rem;
     }
 
-    /* כותרות */
-    h1, h2, h3 { color: #154360; }
-    
-    /* תפריט צד */
+    /* עיצוב כפתורים */
+    .stButton > button {
+        background: linear-gradient(90deg, #1A3C5B 0%, #295F8A 100%);
+        color: white;
+        border-radius: 8px;
+        border: none;
+        padding: 12px 24px;
+        font-weight: 600;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .stButton > button:hover {
+        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        opacity: 0.95;
+    }
+
+    /* עיצוב סיידבר */
     section[data-testid="stSidebar"] {
-        background-color: #F4F6F6;
-        border-left: 1px solid #D5D8DC;
+        background-color: #FFFFFF;
+        border-left: 1px solid #E2E8F0;
+    }
+    
+    /* עיצוב טבלאות */
+    .stDataFrame {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #E2E8F0;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -183,18 +206,16 @@ def update_stage_costs(project_id, stages_df):
         st.error(f"Update Error: {e}")
         return False
 
-# --- 4. פונקציות ייצוא (מתוקן) ---
+# --- 4. פונקציות ייצוא (מתוקן - תיקון באג ה-Align) ---
 def create_pdf(project_name, df):
     pdf = FPDF()
     pdf.add_page()
     
-    # בדיקת קיום פונט עברית
     font_path = "Arial.ttf"  
     has_font = os.path.exists(font_path)
     
     if has_font:
         try:
-            # uni=True חשוב לתמיכה בתווים
             pdf.add_font("CustomArial", "", font_path, uni=True)
             pdf.set_font("CustomArial", size=12)
         except Exception as e:
@@ -203,21 +224,20 @@ def create_pdf(project_name, df):
     else:
         pdf.set_font("helvetica", size=12)
 
-    # כותרות
-    pdf.set_fill_color(46, 134, 193)
+    # כותרת עם צבע רקע
+    pdf.set_fill_color(26, 60, 91) # כחול כהה (כמו באתר)
     pdf.set_text_color(255, 255, 255)
     pdf.cell(0, 15, txt="SBB Engineering Report", ln=True, align='C', fill=True)
     pdf.ln(10)
     
     pdf.set_text_color(0, 0, 0)
     
-    # היפוך טקסט שם הפרויקט אם יש פונט עברי
     display_name = project_name[::-1] if has_font else "Project Name"
     pdf.cell(0, 10, txt=f"Project: {display_name}", ln=True, align='R')
     pdf.ln(5)
 
     # כותרות טבלה
-    pdf.set_fill_color(235, 245, 251)
+    pdf.set_fill_color(240, 244, 248) # אפור-תכלת בהיר
     
     h_actual = "בפועל"[::-1] if has_font else "Actual"
     h_planned = "מתוכנן"[::-1] if has_font else "Planned"
@@ -227,12 +247,12 @@ def create_pdf(project_name, df):
     pdf.cell(60, 10, h_planned, 1, 0, 'C', fill=True)
     pdf.cell(70, 10, h_stage, 1, 1, 'C', fill=True)
 
+    # לולאת השורות (תיקון הבאג פה)
     for _, row in df.iterrows():
             pdf.cell(60, 10, f"{row['actual_cost']:,.0f}", 1, 0, 'C')
             pdf.cell(60, 10, f"{row['planned_cost']:,.0f}", 1, 0, 'C')
             
             s_name = str(row['stage_name'])
-            # בדיקה האם הטקסט מכיל עברית לפני היפוך
             is_hebrew = any("\u0590" <= c <= "\u05EA" for c in s_name)
             
             if has_font and is_hebrew:
@@ -242,9 +262,9 @@ def create_pdf(project_name, df):
                 display_stage = s_name
                 align_set = 'C'
             
-            pdf.cell(70, 10, display_stage, 1, 1, 'C', align=align_set)
+            # --- התיקון: העברת align כארגומנט יחיד במקום הנכון ---
+            pdf.cell(70, 10, display_stage, border=1, ln=1, align=align_set)
             
-    # החזרה כ-Bytes עבור Streamlit
     return pdf.output(dest='S').encode('latin-1')
 
 def create_excel(df):
@@ -253,35 +273,39 @@ def create_excel(df):
         df.to_excel(writer, index=False, sheet_name='Budget_Report')
         workbook = writer.book
         worksheet = writer.sheets['Budget_Report']
-        header_fmt = workbook.add_format({'bold': True, 'fg_color': '#2E86C1', 'font_color': 'white', 'border': 1})
+        header_fmt = workbook.add_format({'bold': True, 'fg_color': '#1A3C5B', 'font_color': 'white', 'border': 1})
         for col_num, value in enumerate(df.columns.values):
             worksheet.write(0, col_num, value, header_fmt)
     return output.getvalue()
 
 # --- 5. ממשק ראשי ---
-st.sidebar.title("🏗️ SBB Pro")
-st.sidebar.caption("מערכת ניהול תקציב הנדסי")
-menu = st.sidebar.radio("", ["🏠 מסך הבית", "➕ פרויקט חדש", "📊 דאשבורד ניהולי", "📉 מעקב תקציב"])
+st.sidebar.markdown("## 🏗️ SBB Pro System")
+menu = st.sidebar.radio("", ["🏠 דף הבית", "➕ פרויקט חדש", "📊 דאשבורד", "📉 בקרת תקציב"])
+
 st.sidebar.markdown("---")
 if supabase:
-    st.sidebar.success("🟢 מערכת מחוברת")
+    st.sidebar.success("🟢 מחובר לשרת")
 else:
-    st.sidebar.error("🔴 שגיאת התחברות")
+    st.sidebar.error("🔴 אין תקשורת")
 
-# --- מסך הבית ---
-if menu == "🏠 מסך הבית":
-    st.title("SBB Pro Dashboard")
-    st.markdown("### ברוכים הבאים למערכת הניהול")
+# --- לוגיקה זהה, עיצוב שונה ---
+
+if menu == "🏠 דף הבית":
+    st.markdown("# ברוכים הבאים ל-SBB Pro")
+    st.caption("מערכת מתקדמת לניהול תקציב הנדסי | גרסה 2.0")
+    st.markdown("---")
     
     projects = get_all_projects()
     if not projects.empty:
-        c1, c2, c3 = st.columns(3)
-        c1.metric("פרויקטים פעילים", len(projects))
-        c2.metric("תקציב מנוהל", f"₪{projects['total_budget'].sum():,.0f}")
-        c3.metric("עלות למ\"ר (ממוצע)", f"₪{projects['unit_cost'].mean():,.0f}")
-
-    st.markdown("---")
-    st.subheader("📚 מחירון בסיס (נתוני מערכת)")
+        # שימוש בקונטיינר מעוצב
+        with st.container():
+            c1, c2, c3 = st.columns(3)
+            c1.metric("סה״כ פרויקטים", len(projects))
+            c2.metric("שווי תיק פרויקטים", f"₪{projects['total_budget'].sum():,.0f}")
+            c3.metric("עלות ממוצעת למ\"ר", f"₪{projects['unit_cost'].mean():,.0f}")
+    
+    st.markdown("### 📚 מחירון בסיס (Reference)")
+    st.markdown("נתונים אלו משמשים כברירת מחדל בעת פתיחת פרויקט חדש")
     
     matrix_data = []
     for category, methods in MATRIX.items():
@@ -294,11 +318,10 @@ if menu == "🏠 מסך הבית":
             })
     st.dataframe(pd.DataFrame(matrix_data), use_container_width=True, hide_index=True)
 
-# --- פרויקט חדש ---
 elif menu == "➕ פרויקט חדש":
     st.markdown("## 🆕 הקמת פרויקט חדש")
     
-    with st.expander("📝 1. הגדרות בסיס", expanded=True):
+    with st.expander("📝 1. אפיון ראשוני", expanded=True):
         col_u, col_m = st.columns(2)
         usage = col_u.selectbox("ייעוד המבנה:", list(MATRIX.keys()))
         method = None
@@ -309,21 +332,19 @@ elif menu == "➕ פרויקט חדש":
             if method:
                 base_price = MATRIX[usage][method]['base']
                 info = MATRIX[usage][method]['info']
-                st.info(f"ℹ️ {info}")
+                st.info(f"💡 {info}")
 
     if usage and method:
         with st.form("new_project_form"):
             st.markdown("### 🏗️ פרטי הפרויקט")
             c_name, c_units, c_cost = st.columns([2, 1, 1])
             p_name = c_name.text_input("שם הפרויקט")
-            units = c_units.number_input("יחידות/מ\"ר", min_value=1, value=100)
+            units = c_units.number_input("שטח (מ\"ר) / יחידות", min_value=1, value=100)
             u_cost = c_cost.number_input("עלות למ\"ר (₪)", value=base_price)
 
             st.markdown("---")
-            st.markdown("### 📊 חלוקת תקציב (100%)")
-            st.caption("הגדר את אחוזי התקציב לשלבים השונים:")
+            st.markdown("### 📊 חלוקת תקציב")
             
-            # 3 תיבות אחוזים, האחרונה מחושבת אוטומטית
             col_p1, col_p2, col_p3 = st.columns(3)
             with col_p1:
                 p1 = st.number_input("🔹 תכנון ורישוי (%)", min_value=0, max_value=100, value=15, step=1)
@@ -334,27 +355,22 @@ elif menu == "➕ פרויקט חדש":
             p3 = 100 - (p1 + p2)
             
             with col_p3:
-                st.number_input("🔑 מסירה וגמר (יתרה)", value=p3, disabled=True)
-                if p3 < 0:
-                      st.error("חריגה מ-100%!")
+                st.number_input("🔑 מסירה (יתרה)", value=p3, disabled=True)
 
-            df_pie = pd.DataFrame({
-                'Stage': ['תכנון', 'ביצוע', 'מסירה'],
-                'Value': [p1, p2, p3]
-            })
-            fig_pie = px.pie(df_pie, values='Value', names='Stage', hole=0.4, 
-                                color_discrete_sequence=['#AED6F1', '#2E86C1', '#154360'])
-            fig_pie.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0), height=150)
+            # גרף פאי קטן להמחשה
+            df_pie = pd.DataFrame({'Stage': ['תכנון', 'ביצוע', 'מסירה'], 'Value': [p1, p2, p3]})
+            fig_pie = px.pie(df_pie, values='Value', names='Stage', hole=0.6, 
+                            color_discrete_sequence=['#93C5FD', '#3B82F6', '#1E40AF'])
+            fig_pie.update_layout(showlegend=False, margin=dict(t=0, b=0, l=0, r=0), height=120)
             st.plotly_chart(fig_pie, use_container_width=True)
             
-            st.markdown("---")
-            submitted = st.form_submit_button("💾 צור פרויקט במערכת")
+            submitted = st.form_submit_button("🚀 צור פרויקט")
             
             if submitted:
                 if not p_name:
-                    st.warning("חובה להזין שם פרויקט")
+                    st.warning("נא להזין שם פרויקט")
                 elif p3 < 0:
-                    st.error("סך האחוזים חורג מ-100.")
+                    st.error("האחוזים חורגים מ-100")
                 else:
                     total = units * u_cost
                     df_s = pd.DataFrame({
@@ -363,99 +379,54 @@ elif menu == "➕ פרויקט חדש":
                         "עלות תכנון": [(p1/100)*total, (p2/100)*total, (p3/100)*total]
                     })
                     if save_project(p_name, units, u_cost, total, df_s, usage, method):
-                        st.success(f"הפרויקט '{p_name}' נוצר בהצלחה!")
+                        st.success(f"הפרויקט {p_name} נוצר בהצלחה!")
                         st.balloons()
 
-# --- דאשבורד ניהולי משופר ---
-elif menu == "📊 דאשבורד ניהולי":
-    st.markdown("## 📊 דאשבורד ניהולי מתקדם")
+elif menu == "📊 דאשבורד":
+    st.markdown("## 📊 דאשבורד ניהולי")
     projects = get_all_projects()
     
     if not projects.empty:
-        # 1. שורת מדדים (KPIs)
-        st.markdown("### 💡 מדדי מפתח")
-        k1, k2, k3, k4 = st.columns(4)
+        # מדדים עליונים
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("פרויקטים", len(projects))
+        c2.metric("סה\"כ תקציב", f"₪{projects['total_budget'].sum()/1000000:.1f}M")
+        c3.metric("ממוצע לפרויקט", f"₪{projects['total_budget'].mean()/1000000:.1f}M")
+        c4.metric("סה\"כ יח\"ד", int(projects['units'].sum()))
         
-        total_projects = len(projects)
-        total_budget = projects['total_budget'].sum()
-        avg_budget = projects['total_budget'].mean()
-        total_units = projects['units'].sum()
-        
-        k1.metric("פרויקטים", total_projects)
-        k2.metric("תקציב כולל", f"₪{total_budget:,.0f}")
-        k3.metric("תקציב ממוצע", f"₪{avg_budget:,.0f}")
-        k4.metric("יח\"ד/משרדים", f"{total_units:,.0f}")
-        
-        st.markdown("---")
+        st.markdown("###") # Spacer
 
-        # 2. אזור הגרפים (מסודר בשתי עמודות)
-        c_charts1, c_charts2 = st.columns([1.6, 1])
+        # גרפים
+        c_charts1, c_charts2 = st.columns([2, 1])
         
         with c_charts1:
-            st.subheader("💰 נפח תקציבי לפי פרויקט")
-            fig_bar = px.bar(
-                projects, 
-                x='name', 
-                y='total_budget',
-                color='total_budget', # צביעה הדרגתית לפי גודל התקציב
-                text_auto='.2s',
-                labels={'name': 'שם הפרויקט', 'total_budget': 'תקציב (₪)'},
-                color_continuous_scale=px.colors.sequential.Blues
-            )
-            fig_bar.update_layout(
-                plot_bgcolor="white",
-                xaxis_title=None,
-                font=dict(family="Segoe UI", size=12),
-                coloraxis_showscale=False
-            )
-            fig_bar.update_traces(textposition='outside')
+            st.caption("תקציב לפי פרויקט")
+            fig_bar = px.bar(projects, x='name', y='total_budget',
+                           color='total_budget', text_auto='.2s',
+                           color_continuous_scale='Blues')
+            fig_bar.update_layout(plot_bgcolor="white", xaxis_title=None, coloraxis_showscale=False)
             st.plotly_chart(fig_bar, use_container_width=True)
 
         with c_charts2:
-            st.subheader("🏗️ פילוח סוגי פרויקטים")
-            # הכנת נתונים לגרף דונאט
+            st.caption("פילוח ייעודים")
             df_pie = projects.groupby('usage_type').size().reset_index(name='count')
-            fig_pie = px.pie(
-                df_pie, 
-                values='count', 
-                names='usage_type', 
-                hole=0.4,
-                color_discrete_sequence=['#2E86C1', '#AED6F1', '#154360', '#5DADE2']
-            )
-            fig_pie.update_layout(
-                legend=dict(orientation="h", yanchor="bottom", y=-0.1, xanchor="center", x=0.5),
-                margin=dict(t=20, b=0, l=0, r=0)
-            )
+            fig_pie = px.pie(df_pie, values='count', names='usage_type', hole=0.5,
+                           color_discrete_sequence=px.colors.sequential.Blues_r)
+            fig_pie.update_layout(legend=dict(orientation="h", y=-0.2))
             st.plotly_chart(fig_pie, use_container_width=True)
 
-        # 3. טבלת נתונים
-        st.markdown("### 📋 נתונים מפורטים")
-        with st.expander("לחץ כאן לצפייה בטבלה המלאה", expanded=False):
-            st.dataframe(
-                projects, 
-                use_container_width=True,
-                column_config={
-                    "name": "שם פרויקט",
-                    "total_budget": st.column_config.NumberColumn("תקציב כולל", format="₪%d"),
-                    "unit_cost": st.column_config.NumberColumn("עלות למ\"ר", format="₪%d"),
-                    "units": "יחידות",
-                    "usage_type": "ייעוד",
-                    "build_method": "שיטה",
-                    "created_at": st.column_config.DatetimeColumn("תאריך", format="DD/MM/YYYY")
-                }
-            )
-
+        with st.expander("📂 רשימת פרויקטים מלאה"):
+            st.dataframe(projects, use_container_width=True)
     else:
-        st.info("אין נתונים להצגה")
+        st.info("עדיין אין פרויקטים במערכת")
 
-# --- מעקב תקציב ---
-elif menu == "📉 מעקב תקציב":
-    st.markdown("## 📉 בקרת תקציב")
+elif menu == "📉 בקרת תקציב":
+    st.markdown("## 📉 ניהול ובקרת תקציב")
     projects = get_all_projects()
     
     if not projects.empty:
         col_sel, _ = st.columns([1, 2])
-        sel = col_sel.selectbox("בחר פרויקט:", projects['name'].unique())
+        sel = col_sel.selectbox("בחר פרויקט לניהול:", projects['name'].unique())
         
         p_row = projects[projects['name'] == sel].iloc[0]
         p_id = int(p_row['id'])
@@ -463,83 +434,66 @@ elif menu == "📉 מעקב תקציב":
         stages = get_project_stages(p_id)
         
         if not stages.empty:
+            # מדדים צבעוניים לבקרה
+            st.markdown("### סטטוס תקציבי")
             c1, c2, c3 = st.columns(3)
+            
             total_plan = stages['planned_cost'].sum()
             total_actual = stages['actual_cost'].sum()
             diff = total_plan - total_actual
             
-            c1.metric("תקציב מתוכנן", f"₪{total_plan:,.0f}")
-            c2.metric("ביצוע בפועל", f"₪{total_actual:,.0f}")
-            c3.metric("יתרה בתקציב", f"₪{diff:,.0f}", delta_color="normal")
-
+            c1.metric("תקציב (Plan)", f"₪{total_plan:,.0f}")
+            c2.metric("ביצוע (Actual)", f"₪{total_actual:,.0f}")
+            c3.metric("יתרה", f"₪{diff:,.0f}", delta_color="normal")
+            
             st.markdown("---")
             
-            col_table, col_graph = st.columns([1, 1.5])
+            col_edit, col_view = st.columns([1, 1])
             
-            with col_table:
-                st.subheader("עדכון עלויות")
+            with col_edit:
+                st.markdown("#### ✏️ עדכון ביצוע")
                 edited = st.data_editor(
                     stages,
                     column_config={
                         "stage_name": st.column_config.TextColumn("שלב", disabled=True),
-                        "planned_cost": st.column_config.NumberColumn("מתוכנן", format="₪%d", disabled=True),
-                        "actual_cost": st.column_config.NumberColumn("בפועל", format="₪%d", required=True)
+                        "planned_cost": st.column_config.NumberColumn("תקציב", format="₪%d", disabled=True),
+                        "actual_cost": st.column_config.NumberColumn("נוצל בפועל", format="₪%d", required=True)
                     },
                     use_container_width=True,
                     hide_index=True,
                     key="editor"
                 )
-                if st.button("💾 שמור עדכון"):
+                if st.button("💾 שמור שינויים", type="primary"):
                     if update_stage_costs(p_id, edited):
-                        st.toast("הנתונים נשמרו!", icon="✅")
+                        st.toast("הנתונים עודכנו בהצלחה!", icon="✅")
                         st.rerun()
 
-            with col_graph:
-                st.subheader("תחזית מול ביצוע")
+            with col_view:
+                st.markdown("#### 📊 תמונת מצב")
                 fig_compare = go.Figure()
-                
-                # תכנון
-                fig_compare.add_trace(go.Bar(
-                    name='תכנון', 
-                    x=edited['stage_name'], 
-                    y=edited['planned_cost'],
-                    marker_color='#D6DBDF', 
-                    texttemplate='%{y:.2s}',
-                    textposition='auto'
-                ))
-                
-                # ביצוע
-                fig_compare.add_trace(go.Bar(
-                    name='ביצוע', 
-                    x=edited['stage_name'], 
-                    y=edited['actual_cost'],
-                    marker_color='#2874A6', 
-                    texttemplate='%{y:.2s}',
-                    textposition='auto'
-                ))
-                
-                fig_compare.update_layout(barmode='group', plot_bgcolor='white', margin=dict(l=20, r=20, t=30, b=20))
+                fig_compare.add_trace(go.Bar(name='תכנון', x=edited['stage_name'], y=edited['planned_cost'], marker_color='#CBD5E1'))
+                fig_compare.add_trace(go.Bar(name='ביצוע', x=edited['stage_name'], y=edited['actual_cost'], marker_color='#1E40AF'))
+                fig_compare.update_layout(barmode='group', plot_bgcolor='white', height=300, margin=dict(l=10, r=10, t=10, b=10))
                 st.plotly_chart(fig_compare, use_container_width=True)
 
-            st.markdown("#### 📥 הפקת דוחות")
-            c_pdf, c_xlsx, _ = st.columns([1, 1, 3])
+            st.markdown("---")
+            st.markdown("#### 📤 ייצוא דוחות")
+            c_pdf, c_xls, _ = st.columns([1, 1, 3])
             safe_name = re.sub(r'[\\/*?:"<>|]', "", sel)
             
             with c_pdf:
-                # הוספת תפיסת שגיאות מורחבת לPDF
                 try:
                     pdf_data = create_pdf(sel, edited)
-                    st.download_button("PDF", data=pdf_data, file_name=f"{safe_name}.pdf", mime="application/pdf", use_container_width=True)
-                except Exception as e: 
-                    st.error(f"שגיאה ביצירת PDF: {e}")
-            
-            with c_xlsx:
-                try:
-                    excel_data = create_excel(edited)
-                    st.download_button("Excel", data=excel_data, file_name=f"{safe_name}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                    st.download_button("📄 הורד דוח PDF", data=pdf_data, file_name=f"{safe_name}.pdf", mime="application/pdf", use_container_width=True)
                 except Exception as e:
-                    st.error(f"שגיאה ביצירת Excel: {e}")
+                    st.error(f"שגיאה ב-PDF: {e}")
+            
+            with c_xls:
+                try:
+                    xls_data = create_excel(edited)
+                    st.download_button("📗 הורד אקסל", data=xls_data, file_name=f"{safe_name}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                except Exception as e:
+                    st.error("שגיאה באקסל")
 
     else:
-
-        st.info("אין פרויקטים במערכת")
+        st.info("אנא צור פרויקט חדש כדי להתחיל")
