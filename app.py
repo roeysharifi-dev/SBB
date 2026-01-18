@@ -192,7 +192,7 @@ def create_pdf(project_name, df):
     
     if has_font:
         try:
-            pdf.add_font("Arial", "", font_path, uni=True)
+            pdf.add_font("Arial", "", font_path)
             pdf.set_font("Arial", size=12)
         except:
             has_font = False
@@ -220,11 +220,13 @@ def create_pdf(project_name, df):
     pdf.cell(70, 10, h_stage, 1, 1, 'C', fill=True)
 
     for _, row in df.iterrows():
-        pdf.cell(60, 10, f"{row['actual_cost']:,.0f}", 1, 0, 'C')
-        pdf.cell(60, 10, f"{row['planned_cost']:,.0f}", 1, 0, 'C')
-        s_name = str(row['stage_name'])
-        display_stage = s_name[::-1] if has_font else "Stage"
-        pdf.cell(70, 10, display_stage, 1, 1, 'C')
+            pdf.cell(60, 10, f"{row['actual_cost']:,.0f}", 1, 0, 'C')
+            pdf.cell(60, 10, f"{row['planned_cost']:,.0f}", 1, 0, 'C')
+            s_name = str(row['stage_name'])
+            # היפוך טקסט רק אם הוא בעברית ויש פונט תומך
+            is_hebrew = any("\u0590" <= c <= "\u05EA" for c in s_name)
+            display_stage = s_name[::-1] if has_font and is_hebrew else s_name
+            pdf.cell(70, 10, display_stage, 1, 1, 'C', align='R' if is_hebrew else 'C')
     return bytes(pdf.output())
 
 def create_excel(df):
@@ -519,5 +521,6 @@ elif menu == "📉 מעקב תקציב":
     else:
 
         st.info("אין פרויקטים במערכת")
+
 
 
