@@ -227,7 +227,7 @@ def create_pdf(project_name, df):
             is_hebrew = any("\u0590" <= c <= "\u05EA" for c in s_name)
             display_stage = s_name[::-1] if has_font and is_hebrew else s_name
             pdf.cell(70, 10, display_stage, 1, 1, 'C', align='R' if is_hebrew else 'C')
-    return bytes(pdf.output())
+    return pdf.output()
 
 def create_excel(df):
     output = io.BytesIO()
@@ -521,6 +521,7 @@ elif menu == "📉 מעקב תקציב":
     else:
 
         st.info("אין פרויקטים במערכת")
+
 
 
 
