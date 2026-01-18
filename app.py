@@ -242,7 +242,7 @@ def create_pdf(project_name, df):
     pdf = FPDF()
     pdf.add_page()
     
-    font_path = "Arial.ttf"
+    font_path = "arial.ttf"
     has_font = os.path.exists(font_path)
     
     if has_font:
@@ -518,3 +518,4 @@ elif menu == "בקרת תקציב":
                     xls_bytes = create_excel(edited)
                     st.download_button("📗 הורד אקסל", xls_bytes, f"{safe_n}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 except: st.error("שגיאה באקסל")
+
