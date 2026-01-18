@@ -552,3 +552,18 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+
+# בתוך מסך דאשבורד ניהולי
+tab_summary, tab_charts, tab_data = st.tabs(["📌 סיכום מנהלים", "📈 ניתוח גרפי", "📄 טבלאות נתונים"])
+
+with tab_summary:
+    # תכניס כאן את ה-Metrics (שורת המדדים)
+    st.write("נתונים כלליים של כל הפרויקטים")
+
+with tab_charts:
+    # תכניס כאן את הגרפים (fig_bar ו-fig_pie)
+    st.plotly_chart(fig_bar, use_container_width=True)
+
+with tab_data:
+    # תכניס כאן את ה-dataframe המלא
+    st.dataframe(projects, use_container_width=True)
