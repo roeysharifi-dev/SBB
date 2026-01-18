@@ -18,12 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# פונקציה להמרת תמונה ל-base64 (עבור לוגו אם תרצה בעתיד)
-def img_to_bytes(img_path):
-    img_bytes = Path(img_path).read_bytes()
-    encoded = base64.b64encode(img_bytes).decode()
-    return encoded
-
 st.markdown("""
 <style>
     /* ייבוא פונט Heebo - מראה הייטקי נקי */
@@ -33,12 +27,12 @@ st.markdown("""
         font-family: 'Heebo', sans-serif !important;
     }
     
-    /* צבע רקע כללי - אפור בהיר מאוד ומקצועי */
+    /* צבע רקע כללי */
     .stApp {
-        background-color: #F1F5F9;
+        background-color: #F8FAFC;
     }
 
-    /* הסתרת אלמנטים דיפולטיביים של סטרימליט */
+    /* הסתרת אלמנטים מיותרים */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
@@ -49,49 +43,54 @@ st.markdown("""
         padding-top: 20px;
     }
     
-    /* שינוי רכיב ה-Radio Button שייראה כמו תפריט */
-    .stRadio > label { display: none; } /* הסתרת כותרת */
+    /* תיקון צבע טקסט בתפריט הצד - לבן בוהק */
+    div[role="radiogroup"] p {
+        color: #FFFFFF !important;
+        font-size: 1.1rem;
+        font-weight: 500;
+        margin: 0;
+    }
+    
+    /* עיצוב כפתורי התפריט */
+    .stRadio > label { display: none; }
     div[role="radiogroup"] > label > div:first-of-type {
         display: none; /* הסתרת העיגול */
     }
     div[role="radiogroup"] {
-        gap: 10px;
+        gap: 8px;
     }
     div[role="radiogroup"] label {
         background-color: transparent;
-        color: #94A3B8; /* טקסט אפור */
-        padding: 15px 20px;
+        padding: 12px 20px;
         border-radius: 8px;
-        border: 1px solid transparent;
         transition: all 0.3s;
+        border: 1px solid transparent;
         margin-bottom: 5px;
-        display: flex;
-        justify-content: flex-end; /* יישור לימין */
-    }
-    div[role="radiogroup"] label:hover {
-        background-color: #1E293B;
-        color: white;
         cursor: pointer;
     }
-    /* פריט נבחר */
+    div[role="radiogroup"] label:hover {
+        background-color: #1E293B; /* צבע רקע בהובר */
+        border-color: #334155;
+    }
+    
+    /* פריט נבחר בתפריט */
     div[role="radiogroup"] label[data-checked="true"] {
         background-color: #3B82F6 !important; /* כחול בוהק */
-        color: white !important;
-        font-weight: bold;
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     }
-    div[role="radiogroup"] div[data-testid="stMarkdownContainer"] p {
-        font-size: 1.1rem;
+    div[role="radiogroup"] label[data-checked="true"] p {
+        color: #FFFFFF !important;
+        font-weight: 700;
     }
 
     /* --- עיצוב תוכן ראשי --- */
     
-    /* Navbar עליון מדמה */
+    /* Navbar עליון */
     .top-nav {
         background-color: white;
         padding: 15px 30px;
         border-radius: 12px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         margin-bottom: 25px;
         display: flex;
         justify-content: space-between;
@@ -109,7 +108,7 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* מטריקות - עיצוב חדש לחלוטין */
+    /* מטריקות */
     div[data-testid="stMetric"] {
         background-color: white;
         border-radius: 12px;
@@ -149,14 +148,12 @@ st.markdown("""
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
 
-    /* כותרות */
+    /* כותרות וטקסט כללי */
     h1, h2, h3 {
         color: #1E293B;
         direction: rtl;
         text-align: right;
     }
-    
-    /* כיוון טקסט גלובלי */
     .stMarkdown, p, div {
         direction: rtl;
     }
@@ -242,18 +239,16 @@ def update_stage_costs(pid, df):
 
 # --- 5. PDF Generation (FIXED) ---
 def create_pdf(project_name, df):
-    # יצירת מופע חדש ל-PDF
     pdf = FPDF()
     pdf.add_page()
     
-    font_path = "arial.ttf"
+    font_path = "Arial.ttf"
     has_font = os.path.exists(font_path)
     
     if has_font:
         pdf.add_font("CustomArial", "", font_path, uni=True)
         pdf.set_font("CustomArial", size=12)
     else:
-        # Fallback בטוח למקרה שאין פונט - מונע קריסה
         pdf.set_font("helvetica", size=12)
 
     # כותרת
@@ -265,7 +260,6 @@ def create_pdf(project_name, df):
     
     # שם פרויקט
     if has_font:
-        # היפוך ידני פשוט כדי לוודא תאימות
         display_name = project_name[::-1]
         pdf.cell(0, 10, txt=f"Project: {display_name}", ln=True, align='R')
     else:
@@ -274,7 +268,6 @@ def create_pdf(project_name, df):
 
     # כותרות טבלה
     pdf.set_fill_color(241, 245, 249)
-    # טקסטים קבועים
     h_act = "בפועל"[::-1] if has_font else "Actual"
     h_plan = "מתוכנן"[::-1] if has_font else "Planned"
     h_stg = "שלב"[::-1] if has_font else "Stage"
@@ -290,7 +283,6 @@ def create_pdf(project_name, df):
             pdf.cell(60, 10, f"{row['planned_cost']:,.0f}", 1, 0, 'C')
             
             s_name = str(row['stage_name'])
-            # בדיקה אם יש עברית
             is_heb = any("\u0590" <= c <= "\u05EA" for c in s_name)
             
             if has_font and is_heb:
@@ -302,20 +294,15 @@ def create_pdf(project_name, df):
             
             pdf.cell(70, 10, display_stage, border=1, ln=1, align=align_set)
         except:
-            # במקרה של תו בעייתי בשורה ספציפית, מדלגים ולא קורסים
             pdf.cell(70, 10, "Error", border=1, ln=1, align='C')
 
-    # --- התיקון האולטימטיבי ל-Latin-1 ---
-    # כתיבה לקובץ זמני וקריאה בינארית. 
-    # זה עוקף את הניסיון של פייתון להמיר את המחרוזת ל-Latin-1.
+    # שמירה וקריאה בינארית לתיקון בעיות קידוד
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_file:
-        pdf.output(tmp_file.name) # כותב לדיסק
-        tmp_file.close() # סוגר גישה
-        
+        pdf.output(tmp_file.name)
+        tmp_file.close()
         with open(tmp_file.name, "rb") as f:
-            pdf_bytes = f.read() # קורא כבייטס נקי
-            
-        os.unlink(tmp_file.name) # מוחק את הקובץ הזמני
+            pdf_bytes = f.read()
+        os.unlink(tmp_file.name)
         return pdf_bytes
 
 def create_excel(df):
@@ -331,7 +318,7 @@ def create_excel(df):
 
 # --- 6. ממשק UI ראשי ---
 
-# Navbar עליון (HTML)
+# Navbar
 st.markdown("""
 <div class="top-nav">
     <div style="display:flex; align-items:center; gap:10px;">
@@ -368,14 +355,12 @@ if menu == "לוח בקרה":
     projects = get_all_projects()
     
     if not projects.empty:
-        # שורת מדדים
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("פרויקטים פעילים", len(projects))
         c2.metric("שווי כולל", f"₪{projects['total_budget'].sum()/1000000:.1f}M")
         c3.metric("ממוצע למ\"ר", f"₪{projects['unit_cost'].mean():,.0f}")
         c4.metric("סה\"כ יח\"ד", int(projects['units'].sum()))
         
-        # טבלה מעוצבת
         st.markdown("### פרויקטים אחרונים")
         st.dataframe(
             projects, 
@@ -396,7 +381,6 @@ if menu == "לוח בקרה":
 elif menu == "פרויקט חדש":
     st.markdown("## יצירת פרויקט חדש")
     
-    # שימוש ב-columns ליצירת מבנה מסודר
     c_form, c_info = st.columns([2, 1])
     
     with c_info:
@@ -451,7 +435,6 @@ elif menu == "ניתוח נתונים":
     st.markdown("## ניתוח נתונים ודוחות")
     df = get_all_projects()
     if not df.empty:
-        # תיקון שמות לעברית עבור הגרפים
         df['שם'] = df['name']
         df['תקציב'] = df['total_budget']
         df['סוג'] = df['usage_type']
@@ -459,8 +442,9 @@ elif menu == "ניתוח נתונים":
         c1, c2 = st.columns([1.5, 1])
         with c1:
             st.markdown("### תקציב לפי פרויקט")
+            # --- תיקון השגיאה בגרף כאן ---
             fig = px.bar(df, x='שם', y='תקציב', color='תקציב', text_auto='.2s', 
-                         color_continuous_scale='slate')
+                         color_continuous_scale='Blues') # הוחלף מ-slate ל-Blues
             fig.update_layout(plot_bgcolor="white", font=dict(family="Heebo"), xaxis_title=None)
             st.plotly_chart(fig, use_container_width=True)
             
@@ -482,7 +466,6 @@ elif menu == "בקרת תקציב":
         stages = get_project_stages(pid)
         
         if not stages.empty:
-            # כרטיסי מידע
             tp, ta = stages['planned_cost'].sum(), stages['actual_cost'].sum()
             c1, c2, c3 = st.columns(3)
             c1.metric("תקציב מתוכנן", f"₪{tp:,.0f}")
@@ -491,7 +474,6 @@ elif menu == "בקרת תקציב":
             
             st.markdown("###")
             
-            # עורך וגרף זה לצד זה
             ce, cg = st.columns([1, 1])
             
             with ce:
@@ -520,7 +502,6 @@ elif menu == "בקרת תקציב":
                                   legend=dict(orientation="h", y=1.1))
                 st.plotly_chart(fig, use_container_width=True)
 
-            # אזור הורדות
             st.markdown("---")
             st.markdown("#### ייצוא נתונים")
             c_pdf, c_xls, _ = st.columns([1, 1, 3])
