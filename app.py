@@ -216,7 +216,80 @@ MATRIX = {
     }
 }
 
-# --- 5. פונקציות לוגיקה ---
+# --- 5. פונקציות לוגיקה כולל אופטימיזציה (חדש!) ---
+
+# === אלגוריתם תכנון דינאמי (DP) ===
+def optimize_construction_plan(budget_limit):
+    """
+    אלגוריתם שמוצא את הקומבינציה האופטימלית של אלמנטים
+    כדי למקסם ציון איכות תחת אילוץ תקציב.
+    מבוסס על בעיית התרמיל (Knapsack Problem).
+    """
+    
+    # נתונים מדומים לאופטימיזציה
+    stages_data = {
+        "שלד ומבנה": [
+            {"name": "בטון רגיל (B30)", "cost": 1500000, "score": 60, "desc": "סטנדרט בסיסי"},
+            {"name": "פלדה מתועשת", "cost": 2200000, "score": 85, "desc": "מהיר ומדויק"},
+            {"name": "בנייה ירוקה מתקדמת", "cost": 2800000, "score": 95, "desc": "בידוד תרמי מקסימלי"}
+        ],
+        "גמרים ועיצוב": [
+            {"name": "סטנדרט קבלן", "cost": 800000, "score": 50, "desc": "ריצוף 60x60"},
+            {"name": "משופר", "cost": 1200000, "score": 75, "desc": "ריצוף 80x80 + דלתות פנים משודרגות"},
+            {"name": "פרימיום", "cost": 1800000, "score": 100, "desc": "שיש טבעי + פרקט עץ + כלים סניטריים יוקרתיים"}
+        ],
+        "מערכות (חשמל/אינסטלציה)": [
+            {"name": "בסיסי", "cost": 400000, "score": 40, "desc": "עמידה בתקן מינימלי"},
+            {"name": "בית חכם בסיסי", "cost": 700000, "score": 70, "desc": "שליטה בתריסים ודוד"},
+            {"name": "מערכות מלאות (VRF + Smart)", "cost": 1100000, "score": 90, "desc": "מיזוג VRF ושליטה מלאה"}
+        ]
+    }
+
+    stage_names = list(stages_data.keys())
+    memo = {}
+
+    def dp_solve(idx, remaining_budget):
+        # מקרה קצה: חריגה מהתקציב
+        if remaining_budget < 0:
+            return -1, [], 0
+        
+        # תנאי עצירה: סיימנו את כל השלבים
+        if idx == len(stage_names):
+            return 0, [], 0
+        
+        # בדיקה בזיכרון (Memoization)
+        state = (idx, remaining_budget)
+        if state in memo:
+            return memo[state]
+
+        best_score = -1
+        best_path = []
+        best_cost = 0
+
+        # ניסוי כל האפשרויות בשלב הנוכחי
+        for option in stages_data[stage_names[idx]]:
+            if option["cost"] <= remaining_budget:
+                # קריאה רקורסיבית לשלב הבא
+                future_score, future_path, future_cost = dp_solve(idx + 1, remaining_budget - option["cost"])
+                
+                if future_score != -1:
+                    current_total_score = option["score"] + future_score
+                    
+                    # בדיקת מקסימום
+                    if current_total_score > best_score:
+                        best_score = current_total_score
+                        # בניית הנתיב: האופציה הנוכחית + מה שנבחר בהמשך
+                        best_path = [option] + future_path
+                        best_cost = option["cost"] + future_cost
+
+        memo[state] = (best_score, best_path, best_cost)
+        return best_score, best_path, best_cost
+
+    # הרצת האלגוריתם
+    max_score, path, total_cost = dp_solve(0, budget_limit)
+    return max_score, path, total_cost, stages_data
+
+# === פונקציות קודמות ===
 def get_project_stages(project_id):
     if not supabase: return pd.DataFrame()
     try:
@@ -352,15 +425,15 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# סטטוס חיבור (מוזרק לתוך ה-Header עם CSS או מוצג מתחת אם פשוט יותר)
+# סטטוס חיבור
 if supabase:
     st.markdown('<div style="margin-top: -80px; margin-bottom: 50px; float: left; position: relative; z-index: 999;"><span class="status-badge status-ok">🟢 מחובר לשרת</span></div>', unsafe_allow_html=True)
 else:
     st.markdown('<div style="margin-top: -80px; margin-bottom: 50px; float: left; position: relative; z-index: 999;"><span class="status-badge status-err">🔴 אין תקשורת</span></div>', unsafe_allow_html=True)
 
 
-# --- תפריט ניווט ראשי ---
-menu_options = ["לוח בקרה", "פרויקט חדש", "ניתוח נתונים", "בקרת תקציב"]
+# --- תפריט ניווט ראשי (כולל אופטימיזציה) ---
+menu_options = ["לוח בקרה", "פרויקט חדש", "ניתוח נתונים", "בקרת תקציב", "אופטימיזציה"]
 selected_tab = st.radio("", menu_options, horizontal=True, label_visibility="collapsed")
 
 st.markdown("<br>", unsafe_allow_html=True) # רווח קטן
@@ -548,3 +621,70 @@ elif selected_tab == "בקרת תקציב":
                     xls_bytes = create_excel(edited)
                     st.download_button("📗 הורד Excel", xls_bytes, f"{safe_n}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 except: st.error("שגיאה")
+
+# --- דף: אופטימיזציה (הלשונית החדשה!) ---
+elif selected_tab == "אופטימיזציה":
+    st.markdown("### 🧠 אשף תכנון אופטימלי (Dynamic Programming)")
+    
+    st.markdown("""
+    כלי זה משתמש ב**תכנון דינאמי** כדי למצוא את המפרט הטוב ביותר לפרויקט,
+    תוך התחשבות באילוצי תקציב ומקסום ציון האיכות המשוקלל.
+    """)
+    
+    col_input, col_res = st.columns([1, 2])
+    
+    with col_input:
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
+        st.markdown("#### הגדרות אופטימיזציה")
+        user_budget = st.number_input("תקציב מקסימלי (₪)", min_value=1000000, max_value=20000000, value=4000000, step=100000)
+        
+        if st.button("🚀 הרץ אופטימיזציה", type="primary"):
+            best_score, best_path, best_cost, raw_data = optimize_construction_plan(user_budget)
+            
+            st.session_state['opt_result'] = {
+                'score': best_score,
+                'path': best_path,
+                'cost': best_cost
+            }
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # הצגת האפשרויות הקיימות (מקרא)
+        with st.expander("📚 צפה במפרט האפשרויות המלא"):
+            _, _, _, stages_data_raw = optimize_construction_plan(0) # רק כדי לשלוף את המילון
+            for cat, opts in stages_data_raw.items():
+                st.markdown(f"**{cat}**")
+                for o in opts:
+                    st.caption(f"- {o['name']}: ₪{o['cost']:,.0f} (ציון: {o['score']})")
+
+    with col_res:
+        if 'opt_result' in st.session_state:
+            res = st.session_state['opt_result']
+            
+            if res['score'] > 0:
+                # מדדים ראשיים
+                m1, m2, m3 = st.columns(3)
+                m1.metric("ציון איכות כולל", f"{res['score']}/300")
+                m2.metric("עלות בפועל", f"₪{res['cost']:,.0f}")
+                utilization = (res['cost'] / user_budget) * 100
+                m3.metric("ניצול תקציב", f"{utilization:.1f}%")
+                
+                st.markdown("#### 🏆 ההרכב הנבחר")
+                
+                # הצגת הנתיב הנבחר בצורה ויזואלית
+                for idx, item in enumerate(res['path']):
+                    st.info(f"**שלב {idx+1}: {item['name']}** \n"
+                            f"💰 עלות: ₪{item['cost']:,.0f} | ⭐ ציון: {item['score']}  \n"
+                            f"📝 {item['desc']}")
+                
+                # גרף התפלגות
+                st.markdown("#### התפלגות עלויות בפתרון")
+                df_chart = pd.DataFrame(res['path'])
+                fig = px.bar(df_chart, x='name', y='cost', text='cost', color='cost', color_continuous_scale='Blues')
+                fig.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
+                fig.update_layout(plot_bgcolor="white", font=dict(family="Rubik"), yaxis_title="עלות בשקלים", xaxis_title=None)
+                st.plotly_chart(fig, use_container_width=True)
+                
+            else:
+                st.error("⚠️ התקציב נמוך מדי! לא ניתן להרכיב מפרט מינימלי בגישה זו. נסה להגדיל את התקציב.")
+        else:
+            st.info("הכנס תקציב ולחץ על כפתור ההרצה כדי לראות את הקסם של DP בפעולה.")
