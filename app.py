@@ -74,6 +74,12 @@ st.markdown("""
     }
     .stButton > button:hover { background-color: #1d4ed8; transform: translateY(-1px); }
     div[data-testid="stForm"] { background: white; padding: 2rem; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    
+    /* Custom Card for Optimization */
+    .css-card {
+        background-color: white; border-radius: 12px; padding: 20px;
+        border: 1px solid #e2e8f0; box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
 
     /* Status Badges */
     .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; }
@@ -129,19 +135,19 @@ def optimize_construction_plan(budget_limit, stages_to_optimize=None):
     # מאגר האפשרויות הגנרי
     all_stages_data = {
         "שלד ומבנה": [
-            {"name": "בטון רגיל (B30)", "cost": 1500000, "score": 60},
-            {"name": "פלדה מתועשת", "cost": 2200000, "score": 85},
-            {"name": "בנייה ירוקה מתקדמת", "cost": 2800000, "score": 95}
+            {"name": "בטון רגיל (B30)", "cost": 1500000, "score": 60, "desc": "סטנדרט בסיסי"},
+            {"name": "פלדה מתועשת", "cost": 2200000, "score": 85, "desc": "מהיר ומדויק"},
+            {"name": "בנייה ירוקה מתקדמת", "cost": 2800000, "score": 95, "desc": "בידוד תרמי מקסימלי"}
         ],
         "גמרים ועיצוב": [
-            {"name": "סטנדרט קבלן", "cost": 800000, "score": 50},
-            {"name": "משופר", "cost": 1200000, "score": 75},
-            {"name": "פרימיום", "cost": 1800000, "score": 100}
+            {"name": "סטנדרט קבלן", "cost": 800000, "score": 50, "desc": "ריצוף 60x60"},
+            {"name": "משופר", "cost": 1200000, "score": 75, "desc": "ריצוף 80x80 + דלתות פנים"},
+            {"name": "פרימיום", "cost": 1800000, "score": 100, "desc": "שיש טבעי + פרקט עץ"}
         ],
         "מערכות (חשמל/אינסטלציה)": [
-            {"name": "בסיסי", "cost": 400000, "score": 40},
-            {"name": "בית חכם בסיסי", "cost": 700000, "score": 70},
-            {"name": "מערכות מלאות", "cost": 1100000, "score": 90}
+            {"name": "בסיסי", "cost": 400000, "score": 40, "desc": "עמידה בתקן מינימלי"},
+            {"name": "בית חכם בסיסי", "cost": 700000, "score": 70, "desc": "שליטה בתריסים ודוד"},
+            {"name": "מערכות מלאות", "cost": 1100000, "score": 90, "desc": "VRF + Smart Home"}
         ]
     }
 
@@ -340,34 +346,24 @@ elif selected_tab == "בקרת תקציב":
         stages = get_project_stages(pid)
         
         if not stages.empty:
-            # חישובים לוגיים
-            spent_so_far = stages['actual_cost'].sum() # כמה שילמנו כבר
-            planned_total = stages['planned_cost'].sum()
+            spent_so_far = stages['actual_cost'].sum()
             
-            # כמה תקציב נשאר בקופה (מהתקציב הכולל)
+            # חישוב התקציב שנותר בקופה
             remaining_money = total_budget_approved - spent_so_far
             
-            # תצוגה
             c1, c2, c3 = st.columns(3)
             c1.metric("תקציב פרויקט כולל", f"₪{total_budget_approved:,.0f}")
             c2.metric("בוצע (נוצל בפועל)", f"₪{spent_so_far:,.0f}")
             
-            # חישוב חריגה בזמן אמת
-            # נניח שחריגה היא אם הכסף שנשאר לא מספיק לכיסוי היתרה המתוכננת
-            cost_to_complete = 0 
-            future_stages_names = []
-            
-            # בדיקה פשטנית: אילו שלבים טרם בוצעו (עלות בפועל = 0)
-            # בלוגיקה אמיתית נבדוק אחוז ביצוע
+            # בדיקת יתרה צפויה בסיום (על בסיס תכנון של מה שנשאר)
             future_stages = stages[stages['actual_cost'] == 0]
             cost_to_complete = future_stages['planned_cost'].sum()
-            
             projected_balance = remaining_money - cost_to_complete
             
             delta_color = "normal" if projected_balance >= 0 else "inverse"
             c3.metric("יתרה צפויה בסיום", f"₪{projected_balance:,.0f}", delta_color=delta_color)
             
-            # === כאן נכנס ה-Dynamic Programming להצלה! ===
+            # === אזור חילוץ פרויקט (DP) ===
             if projected_balance < 0:
                 st.markdown("""
                 <div style="background-color: #fef2f2; border: 1px solid #fee2e2; padding: 15px; border-radius: 10px; margin: 20px 0;">
@@ -377,24 +373,20 @@ elif selected_tab == "בקרת תקציב":
                 """.format(abs(int(projected_balance))), unsafe_allow_html=True)
                 
                 if st.button("🤖 הפעל חילוץ פרויקט (DP Optimization)", key="rescue_btn"):
-                    # מיפוי של השלבים שלנו לשלבים הגנריים של האלגוריתם
-                    # לצורך הדגמה, נניח שהשלבים העתידיים הם "גמרים ועיצוב" ו"מערכות"
-                    # במערכת אמיתית היינו עושים מיפוי חכם יותר
+                    # מיפוי פשוט לשם הדגמה
                     stages_to_fix = ["גמרים ועיצוב", "מערכות (חשמל/אינסטלציה)"]
-                    
                     best_score, best_path, best_cost, _ = optimize_construction_plan(remaining_money, stages_to_fix)
                     
                     if best_score > 0:
                         st.success(f"נמצא פתרון! ניתן לסיים את הפרויקט בעלות של ₪{best_cost:,.0f} (בתוך היתרה: ₪{remaining_money:,.0f})")
                         st.markdown("**התוכנית המוצעת להמשך:**")
                         for item in best_path:
-                             st.info(f"🔹 **{item['name']}** (במקום המתוכנן) - עלות: ₪{item['cost']:,.0f}")
+                             st.info(f"🔹 **{item['name']}** - עלות: ₪{item['cost']:,.0f}")
                     else:
                         st.error("המצב קריטי - גם בבחירת המפרט הזול ביותר לא ניתן לסיים בתקציב הקיים.")
 
             st.markdown("---")
             
-            # עורך הנתונים הרגיל
             ce, cg = st.columns([1, 1])
             with ce:
                 st.markdown("#### עדכון ביצוע")
@@ -414,20 +406,87 @@ elif selected_tab == "בקרת תקציב":
                 fig.update_layout(barmode='group', plot_bgcolor='white', font=dict(family="Rubik"), legend=dict(orientation="h", y=1.1))
                 st.plotly_chart(fig, use_container_width=True)
 
+            # === ייצוא (חזר למקום!) ===
+            st.markdown("---")
+            st.markdown("#### ייצוא דוחות")
+            c_pdf, c_xls, _ = st.columns([1, 1, 3])
+            safe_n = re.sub(r'[\\/*?:"<>|]', "", sel)
+            
+            with c_pdf:
+                try:
+                    pdf_bytes = create_pdf(sel, edited)
+                    st.download_button("📄 הורד PDF", pdf_bytes, f"{safe_n}.pdf", "application/pdf")
+                except Exception as e: st.error(f"שגיאה: {e}")
+            
+            with c_xls:
+                try:
+                    xls_bytes = create_excel(edited)
+                    st.download_button("📗 הורד Excel", xls_bytes, f"{safe_n}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                except: st.error("שגיאה")
+
+# --- לשונית אופטימיזציה (חזרה למצב מלא) ---
 elif selected_tab == "אופטימיזציה":
     st.markdown("### 🧠 אשף תכנון אופטימלי (DP)")
+    
+    st.markdown("""
+    כלי זה משתמש ב**תכנון דינאמי** כדי למצוא את המפרט הטוב ביותר לפרויקט,
+    תוך התחשבות באילוצי תקציב ומקסום ציון האיכות המשוקלל.
+    """)
+    
     col_input, col_res = st.columns([1, 2])
+    
     with col_input:
-        user_budget = st.number_input("תקציב מקסימלי (₪)", value=4000000, step=100000)
+        st.markdown('<div class="css-card">', unsafe_allow_html=True)
+        st.markdown("#### הגדרות אופטימיזציה")
+        user_budget = st.number_input("תקציב מקסימלי (₪)", min_value=1000000, max_value=20000000, value=4000000, step=100000)
+        
         if st.button("🚀 הרץ אופטימיזציה", type="primary"):
-            best_score, best_path, best_cost, _ = optimize_construction_plan(user_budget)
-            st.session_state['opt_result'] = {'score': best_score, 'path': best_path, 'cost': best_cost}
+            best_score, best_path, best_cost, raw_data = optimize_construction_plan(user_budget)
+            
+            st.session_state['opt_result'] = {
+                'score': best_score,
+                'path': best_path,
+                'cost': best_cost
+            }
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # הצגת האפשרויות הקיימות (מקרא)
+        with st.expander("📚 צפה במפרט האפשרויות המלא"):
+            _, _, _, stages_data_raw = optimize_construction_plan(0) # רק כדי לשלוף את המילון
+            for cat, opts in stages_data_raw.items():
+                st.markdown(f"**{cat}**")
+                for o in opts:
+                    st.caption(f"- {o['name']}: ₪{o['cost']:,.0f} (ציון: {o['score']})")
+
     with col_res:
         if 'opt_result' in st.session_state:
             res = st.session_state['opt_result']
+            
             if res['score'] > 0:
-                st.metric("ציון איכות כולל", f"{res['score']}")
-                st.metric("עלות", f"₪{res['cost']:,.0f}")
+                # מדדים ראשיים
+                m1, m2, m3 = st.columns(3)
+                m1.metric("ציון איכות כולל", f"{res['score']}/300")
+                m2.metric("עלות בפועל", f"₪{res['cost']:,.0f}")
+                utilization = (res['cost'] / user_budget) * 100
+                m3.metric("ניצול תקציב", f"{utilization:.1f}%")
+                
+                st.markdown("#### 🏆 ההרכב הנבחר")
+                
+                # הצגת הנתיב הנבחר בצורה ויזואלית
                 for idx, item in enumerate(res['path']):
-                    st.info(f"**שלב {idx+1}: {item['name']}** | ₪{item['cost']:,.0f}")
-            else: st.error("התקציב נמוך מדי.")
+                    st.info(f"**שלב {idx+1}: {item['name']}** \n"
+                            f"💰 עלות: ₪{item['cost']:,.0f} | ⭐ ציון: {item['score']}  \n"
+                            f"📝 {item.get('desc', '')}")
+                
+                # גרף התפלגות
+                st.markdown("#### התפלגות עלויות בפתרון")
+                df_chart = pd.DataFrame(res['path'])
+                fig = px.bar(df_chart, x='name', y='cost', text='cost', color='cost', color_continuous_scale='Blues')
+                fig.update_traces(texttemplate='%{text:,.0f}', textposition='outside')
+                fig.update_layout(plot_bgcolor="white", font=dict(family="Rubik"), yaxis_title="עלות בשקלים", xaxis_title=None)
+                st.plotly_chart(fig, use_container_width=True)
+                
+            else:
+                st.error("⚠️ התקציב נמוך מדי! לא ניתן להרכיב מפרט מינימלי בגישה זו. נסה להגדיל את התקציב.")
+        else:
+            st.info("הכנס תקציב ולחץ על כפתור ההרצה כדי לראות את הקסם של DP בפעולה.")
